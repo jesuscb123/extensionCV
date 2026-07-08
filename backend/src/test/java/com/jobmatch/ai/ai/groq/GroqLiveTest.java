@@ -34,7 +34,8 @@ class GroqLiveTest {
 
         AiProperties properties = new AiProperties(
                 "groq", "https://api.groq.com/openai/v1", apiKey, "llama-3.3-70b-versatile", 0.2);
-        GroqClient client = new GroqClient(properties, new AnalysisMapper(new ObjectMapper()), RestClient.builder());
+        GroqChatClient chatClient = new GroqChatClient(properties, RestClient.builder());
+        GroqClient client = new GroqClient(chatClient, new AnalysisMapper(new ObjectMapper()));
 
         PromptBuilder promptBuilder = new PromptBuilder();
         PromptContext context = new PromptContext(

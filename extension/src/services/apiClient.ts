@@ -1,10 +1,7 @@
-import {
-  analysisCreatedSchema,
-  analysisJobViewSchema,
-  type AnalysisCreated,
-  type AnalysisJobView,
-} from '../schemas/analysis.schema'
+import { analysisJobViewSchema, type AnalysisJobView } from '../schemas/analysis.schema'
+import { jobCreatedSchema, type JobCreated } from '../schemas/job.schema'
 import type { JobOffer } from '../schemas/jobOffer.schema'
+import { answerJobViewSchema, type AnswerJobView, type QuestionField } from '../schemas/question.schema'
 import type { ApiError, ApiResponse } from '../types/api'
 
 /**
@@ -62,7 +59,7 @@ export async function createAnalysis({
   offer,
   cvFile,
   coverLetterFile,
-}: CreateAnalysisPayload): Promise<AnalysisCreated> {
+}: CreateAnalysisPayload): Promise<JobCreated> {
   const form = new FormData()
   form.append('request', new Blob([JSON.stringify(offer)], { type: 'application/json' }))
   form.append('cv', cvFile)
@@ -75,7 +72,7 @@ export async function createAnalysis({
   })
 
   const data = await readEnvelope<unknown>(response)
-  return analysisCreatedSchema.parse(data)
+  return jobCreatedSchema.parse(data)
 }
 
 /** `GET /api/v1/analyses/{jobId}` — consulta estado/resultado del job. */
@@ -86,4 +83,43 @@ export async function getAnalysisJob(jobId: string): Promise<AnalysisJobView> {
 
   const data = await readEnvelope<unknown>(response)
   return analysisJobViewSchema.parse(data)
+}
+
+export interface CreateAnswerJobPayload {
+  questions: QuestionField[]
+  cvFile: File
+  jobOffer?: Pick<JobOffer, 'title' | 'company' | 'description'>
+  language?: string
+}
+
+/** `POST /api/v1/answers` — crea el job de respuestas y devuelve `{ jobId, status }`. */
+export async function createAnswerJob({
+  questions,
+  cvFile,
+  jobOffer,
+  language,
+}: CreateAnswerJobPayload): Promise<JobCreated> {
+  const requestBody = { questions, jobOffer: jobOffer ?? null, language: language ?? null }
+  const form = new FormData()
+  form.append('request', new Blob([JSON.stringify(requestBody)], { type: 'application/json' }))
+  form.append('cv', cvFile)
+
+  const response = await fetch(url('/answers'), {
+    method: 'POST',
+    headers: authHeaders(),
+    body: form,
+  })
+
+  const data = await readEnvelope<unknown>(response)
+  return jobCreatedSchema.parse(data)
+}
+
+/** `GET /api/v1/answers/{jobId}` — consulta estado/resultado del job de respuestas. */
+export async function getAnswerJob(jobId: string): Promise<AnswerJobView> {
+  const response = await fetch(url(`/answers/${encodeURIComponent(jobId)}`), {
+    headers: authHeaders(),
+  })
+
+  const data = await readEnvelope<unknown>(response)
+  return answerJobViewSchema.parse(data)
 }

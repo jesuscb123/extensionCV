@@ -2,14 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { JobOffer } from '../schemas/jobOffer.schema'
 import type { JobStatus } from '../schemas/analysis.schema'
 import { createAnalysis } from '../services/apiClient'
-import {
-  clearCurrentJob,
-  jobStorageKey,
-  loadCurrentJob,
-  saveJob,
-  setCurrentJobId,
-  type StoredAnalysis,
-} from '../services/storage'
+import { analysisJobStorage, type StoredAnalysis } from '../services/storage'
 import type { BackgroundMessage } from '../types/messages'
 
 const isTerminal = (status: JobStatus): boolean => status === 'DONE' || status === 'ERROR'
@@ -38,7 +31,7 @@ export function useAnalysis(): UseAnalysis {
   useEffect(() => {
     let active = true
 
-    void loadCurrentJob().then((current) => {
+    void analysisJobStorage.loadCurrentJob().then((current) => {
       if (!active) return
       setJob(current)
       setLoading(false)
@@ -52,7 +45,7 @@ export function useAnalysis(): UseAnalysis {
       if (area !== 'local') return
       setJob((previous) => {
         if (!previous) return previous
-        const change = changes[jobStorageKey(previous.jobId)]
+        const change = changes[analysisJobStorage.jobStorageKey(previous.jobId)]
         return change?.newValue ? (change.newValue as StoredAnalysis) : previous
       })
     }
@@ -73,8 +66,8 @@ export function useAnalysis(): UseAnalysis {
         offer,
         updatedAt: Date.now(),
       }
-      await saveJob(stored)
-      await setCurrentJobId(created.jobId)
+      await analysisJobStorage.saveJob(stored)
+      await analysisJobStorage.setCurrentJobId(created.jobId)
       setJob(stored)
       startPolling(created.jobId)
     },
@@ -82,7 +75,7 @@ export function useAnalysis(): UseAnalysis {
   )
 
   const reset = useCallback(async () => {
-    await clearCurrentJob()
+    await analysisJobStorage.clearCurrentJob()
     setJob(null)
   }, [])
 

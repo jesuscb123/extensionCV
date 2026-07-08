@@ -1,12 +1,11 @@
 package com.jobmatch.ai.job;
 
-import com.jobmatch.ai.analysis.AnalysisJob;
 import java.util.Optional;
 
-/** Almacén de trabajos de análisis asíncronos. */
-public interface JobStore {
+/** Almacén de trabajos asíncronos, reutilizable por cualquier feature (análisis, respuestas, ...). */
+public interface JobStore<T extends TimestampedJob> {
 
-    void save(AnalysisJob job);
+    void save(T job);
 
-    Optional<AnalysisJob> find(String jobId);
+    Optional<T> find(String jobId);
 }

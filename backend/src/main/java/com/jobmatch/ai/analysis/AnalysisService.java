@@ -1,7 +1,7 @@
 package com.jobmatch.ai.analysis;
 
-import com.jobmatch.ai.api.dto.AnalysisCreatedResponse;
 import com.jobmatch.ai.api.dto.AnalysisJobResponse;
+import com.jobmatch.ai.api.dto.JobCreatedResponse;
 import com.jobmatch.ai.api.dto.JobOfferRequest;
 import com.jobmatch.ai.exception.JobNotFoundException;
 import com.jobmatch.ai.job.JobStore;
@@ -12,22 +12,22 @@ import org.springframework.stereotype.Service;
 @Service
 public class AnalysisService {
 
-    private final JobStore jobStore;
+    private final JobStore<AnalysisJob> jobStore;
     private final AnalysisProcessor processor;
 
-    public AnalysisService(JobStore jobStore, AnalysisProcessor processor) {
+    public AnalysisService(JobStore<AnalysisJob> jobStore, AnalysisProcessor processor) {
         this.jobStore = jobStore;
         this.processor = processor;
     }
 
-    public AnalysisCreatedResponse createAnalysis(JobOfferRequest offer, byte[] cvBytes, byte[] coverLetterBytes) {
+    public JobCreatedResponse createAnalysis(JobOfferRequest offer, byte[] cvBytes, byte[] coverLetterBytes) {
         String jobId = UUID.randomUUID().toString();
         AnalysisJob job = new AnalysisJob(jobId);
         jobStore.save(job);
 
         processor.process(jobId, offer, cvBytes, coverLetterBytes);
 
-        return new AnalysisCreatedResponse(jobId, job.status());
+        return new JobCreatedResponse(jobId, job.status());
     }
 
     public AnalysisJobResponse getJob(String jobId) {

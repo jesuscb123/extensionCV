@@ -37,6 +37,10 @@ Este proyecto debe desarrollarse con estándares profesionales y estar preparado
 - Mostrar el análisis recibido del backend.
 - Mostrar puntuaciones visuales.
 - Mostrar recomendaciones.
+- **Modo "Responder preguntas"**: detectar los campos de texto/textarea/select de un
+  formulario de candidatura en **cualquier portal de empleo** (no solo LinkedIn) y, a partir
+  del CV del usuario, generar una respuesta sugerida por cada pregunta para que el usuario
+  la copie manualmente (sin autocompletar el formulario de terceros).
 
 ## Backend
 
@@ -166,11 +170,11 @@ Organizar el proyecto por capas.
 ```
 controller/  (api)
 
-service/     (analysis)
+service/     (analysis, answer: modo "responder preguntas")
 
-job/         (JobStore async: crear/consultar/expirar trabajos)
+job/         (JobStore<T> async genérico: crear/consultar/expirar trabajos)
 
-ai/          (AiClient + GroqClient)
+ai/          (AiClient + QuestionAnswerAiClient + GroqClient/GroqChatClient)
 
 prompt/
 
@@ -344,6 +348,8 @@ Endpoints (base `/api/v1`):
 
 - `POST /api/v1/analyses` — crea el análisis (multipart: oferta JSON + cv.pdf + coverLetter.pdf). Devuelve `202 { jobId, status }`.
 - `GET /api/v1/analyses/{jobId}` — consulta estado/resultado (`PENDING`/`PROCESSING`/`DONE`/`ERROR`).
+- `POST /api/v1/answers` — modo "responder preguntas" (multipart: JSON con la lista de preguntas detectadas + contexto opcional de la oferta + cv.pdf). Devuelve `202 { jobId, status }`.
+- `GET /api/v1/answers/{jobId}` — consulta estado/resultado del job de respuestas.
 - `GET /api/v1/health` — healthcheck (sin auth).
 
 Los códigos de error del envelope son un enum estable: `VALIDATION_ERROR`, `UNAUTHORIZED`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `PDF_UNPROCESSABLE`, `RATE_LIMITED`, `JOB_NOT_FOUND`, `AI_PROVIDER_ERROR`, `INTERNAL_ERROR`.

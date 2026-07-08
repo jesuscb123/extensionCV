@@ -7,6 +7,7 @@ import com.jobmatch.ai.api.dto.JobOfferRequest;
 import com.jobmatch.ai.config.AiProperties;
 import com.jobmatch.ai.exception.AiProviderException;
 import com.jobmatch.ai.exception.PdfExtractionException;
+import com.jobmatch.ai.job.JobStatus;
 import com.jobmatch.ai.job.JobStore;
 import com.jobmatch.ai.mapper.AnalysisMapper;
 import com.jobmatch.ai.pdf.PdfExtractor;
@@ -28,14 +29,14 @@ public class AnalysisProcessor {
     private final PromptBuilder promptBuilder;
     private final AiClient aiClient;
     private final AnalysisMapper analysisMapper;
-    private final JobStore jobStore;
+    private final JobStore<AnalysisJob> jobStore;
     private final AiProperties aiProperties;
 
     public AnalysisProcessor(PdfExtractor pdfExtractor,
                              PromptBuilder promptBuilder,
                              AiClient aiClient,
                              AnalysisMapper analysisMapper,
-                             JobStore jobStore,
+                             JobStore<AnalysisJob> jobStore,
                              AiProperties aiProperties) {
         this.pdfExtractor = pdfExtractor;
         this.promptBuilder = promptBuilder;

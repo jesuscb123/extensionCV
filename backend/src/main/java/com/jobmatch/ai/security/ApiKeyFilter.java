@@ -43,7 +43,10 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     }
 
     private boolean requiresAuth(HttpServletRequest request) {
-        return !"OPTIONS".equalsIgnoreCase(request.getMethod())
-                && request.getRequestURI().startsWith("/api/v1/analyses");
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        String uri = request.getRequestURI();
+        return uri.startsWith("/api/v1/analyses") || uri.startsWith("/api/v1/answers");
     }
 }

@@ -1,32 +1,31 @@
 package com.jobmatch.ai.job;
 
-import com.jobmatch.ai.analysis.AnalysisJob;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import org.springframework.stereotype.Component;
 
 /**
  * Almacén en memoria con expiración por TTL. Suficiente para el MVP; sustituible por
  * Redis en versiones futuras sin cambiar el resto del código (depende de {@link JobStore}).
+ * Cada feature expone un bean concreto (p. ej. {@code AnalysisJobStore}) que extiende esta
+ * clase para obtener un tipo de bean distinguible por Spring.
  */
-@Component
-public class InMemoryJobStore implements JobStore {
+public class InMemoryJobStore<T extends TimestampedJob> implements JobStore<T> {
 
     private static final Duration TTL = Duration.ofMinutes(30);
 
-    private final ConcurrentMap<String, AnalysisJob> jobs = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, T> jobs = new ConcurrentHashMap<>();
 
     @Override
-    public void save(AnalysisJob job) {
+    public void save(T job) {
         jobs.put(job.id(), job);
         evictExpired();
     }
 
     @Override
-    public Optional<AnalysisJob> find(String jobId) {
+    public Optional<T> find(String jobId) {
         return Optional.ofNullable(jobs.get(jobId));
     }
 

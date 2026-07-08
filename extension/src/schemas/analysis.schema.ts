@@ -1,7 +1,8 @@
 import { z } from 'zod'
+import { jobStatusSchema } from './job.schema'
 
-export const jobStatusSchema = z.enum(['PENDING', 'PROCESSING', 'DONE', 'ERROR'])
-export type JobStatus = z.infer<typeof jobStatusSchema>
+export { jobStatusSchema }
+export type { JobStatus } from './job.schema'
 
 /**
  * Resultado completo del análisis que devuelve el backend.
@@ -42,11 +43,3 @@ export const analysisJobViewSchema = z.object({
 })
 
 export type AnalysisJobView = z.infer<typeof analysisJobViewSchema>
-
-/** Respuesta de `POST /api/v1/analyses` (creación del job). */
-export const analysisCreatedSchema = z.object({
-  jobId: z.string(),
-  status: jobStatusSchema,
-})
-
-export type AnalysisCreated = z.infer<typeof analysisCreatedSchema>

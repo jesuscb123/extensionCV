@@ -34,8 +34,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
 
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())
-                || !request.getRequestURI().startsWith("/api/v1/analyses")) {
+        String uri = request.getRequestURI();
+        boolean protectedPath = uri.startsWith("/api/v1/analyses") || uri.startsWith("/api/v1/answers");
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod()) || !protectedPath) {
             chain.doFilter(request, response);
             return;
         }

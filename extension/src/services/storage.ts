@@ -1,5 +1,6 @@
 import type { JobOffer } from '../schemas/jobOffer.schema'
 import type { AnalysisResult, JobStatus } from '../schemas/analysis.schema'
+import type { AnsweredQuestion, QuestionField } from '../schemas/question.schema'
 
 /** Estado persistido de un análisis en curso o terminado. */
 export interface StoredAnalysis {
@@ -11,36 +12,53 @@ export interface StoredAnalysis {
   updatedAt: number
 }
 
-const CURRENT_JOB_KEY = 'currentJobId'
-
-export function jobStorageKey(jobId: string): string {
-  return `job:${jobId}`
+/** Estado persistido de un job de "responder preguntas" en curso o terminado. */
+export interface StoredAnswerJob {
+  jobId: string
+  status: JobStatus
+  questions: QuestionField[]
+  answers?: AnsweredQuestion[]
+  error?: string
+  updatedAt: number
 }
 
-export async function saveJob(job: StoredAnalysis): Promise<void> {
-  await chrome.storage.local.set({ [jobStorageKey(job.jobId)]: job })
+/**
+ * Crea el conjunto de operaciones de `chrome.storage` para un tipo de job dado
+ * (análisis, respuestas, ...), evitando duplicar la misma lógica por feature.
+ */
+function createJobStorage<T extends { jobId: string }>(keyPrefix: string, currentKey: string) {
+  const jobStorageKey = (jobId: string): string => `${keyPrefix}:${jobId}`
+
+  const saveJob = async (job: T): Promise<void> => {
+    await chrome.storage.local.set({ [jobStorageKey(job.jobId)]: job })
+  }
+
+  const loadJob = async (jobId: string): Promise<T | null> => {
+    const key = jobStorageKey(jobId)
+    const stored = await chrome.storage.local.get(key)
+    return (stored[key] as T | undefined) ?? null
+  }
+
+  const setCurrentJobId = async (jobId: string): Promise<void> => {
+    await chrome.storage.local.set({ [currentKey]: jobId })
+  }
+
+  const getCurrentJobId = async (): Promise<string | null> => {
+    const stored = await chrome.storage.local.get(currentKey)
+    return (stored[currentKey] as string | undefined) ?? null
+  }
+
+  const loadCurrentJob = async (): Promise<T | null> => {
+    const jobId = await getCurrentJobId()
+    return jobId ? loadJob(jobId) : null
+  }
+
+  const clearCurrentJob = async (): Promise<void> => {
+    await chrome.storage.local.remove(currentKey)
+  }
+
+  return { jobStorageKey, saveJob, loadJob, setCurrentJobId, getCurrentJobId, loadCurrentJob, clearCurrentJob }
 }
 
-export async function loadJob(jobId: string): Promise<StoredAnalysis | null> {
-  const key = jobStorageKey(jobId)
-  const stored = await chrome.storage.local.get(key)
-  return (stored[key] as StoredAnalysis | undefined) ?? null
-}
-
-export async function setCurrentJobId(jobId: string): Promise<void> {
-  await chrome.storage.local.set({ [CURRENT_JOB_KEY]: jobId })
-}
-
-export async function getCurrentJobId(): Promise<string | null> {
-  const stored = await chrome.storage.local.get(CURRENT_JOB_KEY)
-  return (stored[CURRENT_JOB_KEY] as string | undefined) ?? null
-}
-
-export async function loadCurrentJob(): Promise<StoredAnalysis | null> {
-  const jobId = await getCurrentJobId()
-  return jobId ? loadJob(jobId) : null
-}
-
-export async function clearCurrentJob(): Promise<void> {
-  await chrome.storage.local.remove(CURRENT_JOB_KEY)
-}
+export const analysisJobStorage = createJobStorage<StoredAnalysis>('job', 'currentJobId')
+export const answerJobStorage = createJobStorage<StoredAnswerJob>('answerJob', 'currentAnswerJobId')

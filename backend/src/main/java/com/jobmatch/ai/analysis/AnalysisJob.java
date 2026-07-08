@@ -1,10 +1,12 @@
 package com.jobmatch.ai.analysis;
 
 import com.jobmatch.ai.api.dto.AnalysisResultDto;
+import com.jobmatch.ai.job.JobStatus;
+import com.jobmatch.ai.job.TimestampedJob;
 import java.time.Instant;
 
 /** Estado mutable de un análisis en el {@code JobStore}. */
-public class AnalysisJob {
+public class AnalysisJob implements TimestampedJob {
 
     private final String id;
     private final Instant createdAt;
