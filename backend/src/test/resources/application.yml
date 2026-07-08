@@ -1,0 +1,10 @@
+ai:
+  mode: stub
+
+app:
+  security:
+    api-key: test-key
+    allowed-origins:
+    rate-limit:
+      requests: 1000
+      window-seconds: 60

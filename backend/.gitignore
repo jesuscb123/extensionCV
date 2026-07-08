@@ -1,0 +1,12 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.log
+.DS_Store
+
+# Configuración local con secretos (API key de Groq) — NO versionar
+config/
+
+# IDE
+.idea/
+*.iml
+.vscode/
