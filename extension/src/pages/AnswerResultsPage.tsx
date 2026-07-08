@@ -9,6 +9,10 @@ interface AnswerResultsPageProps {
 export function AnswerResultsPage({ answers, onReset }: AnswerResultsPageProps) {
   return (
     <div className="space-y-3">
+      <p className="rounded-md bg-slate-900 p-2.5 text-xs text-slate-400">
+        Se han rellenado automáticamente los campos que se han podido identificar en la
+        página. Si alguno no se ha completado, copia la respuesta manualmente.
+      </p>
       {answers.map((item) => (
         <AnswerCard key={item.id} item={item} />
       ))}

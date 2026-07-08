@@ -111,6 +111,13 @@ export function resolveOptions(element: Candidate): string[] | undefined {
 }
 
 /**
+ * Recuerda qué elemento del DOM corresponde a cada id detectado, para poder
+ * rellenarlo más tarde (`fillFields`) sin tener que volver a resolverlo.
+ * Vive en memoria del content script: sobrevive mientras la pestaña no navegue.
+ */
+const fieldRegistry = new Map<string, Candidate>()
+
+/**
  * Detecta campos de texto/textarea/select con una etiqueta resoluble en cualquier
  * página (formularios de candidatura de cualquier portal de empleo, no solo LinkedIn).
  */
@@ -120,13 +127,17 @@ export function detectQuestions(): QuestionField[] {
   ).filter(isEligible)
 
   const questions: QuestionField[] = []
+  fieldRegistry.clear()
 
   for (const [index, element] of candidates.entries()) {
     const label = resolveLabel(element)
     if (!label) continue
 
+    const id = element.id || `field-${index}`
+    fieldRegistry.set(id, element)
+
     questions.push({
-      id: element.id || `field-${index}`,
+      id,
       label: label.slice(0, MAX_LABEL_LENGTH),
       fieldType: resolveFieldType(element),
       maxLength: resolveMaxLength(element),
@@ -137,4 +148,54 @@ export function detectQuestions(): QuestionField[] {
   }
 
   return questions
+}
+
+/**
+ * Ajusta el valor de un input/textarea pasando por el setter nativo del prototipo.
+ * Necesario porque frameworks como React sobrescriben el setter de `.value` en la
+ * instancia para su propio seguimiento interno; escribir a través del prototipo
+ * y disparar un evento `input` real es lo que hace que detecten el cambio.
+ */
+function setNativeValue(element: HTMLInputElement | HTMLTextAreaElement, value: string): void {
+  const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+  Object.getOwnPropertyDescriptor(prototype, 'value')?.set?.call(element, value)
+}
+
+function fillField(element: Candidate, answer: string): boolean {
+  const trimmed = answer.trim()
+  if (!trimmed) return false
+
+  if (element instanceof HTMLSelectElement) {
+    const normalized = trimmed.toLowerCase()
+    const match = Array.from(element.options).find(
+      (option) => option.textContent?.trim().toLowerCase() === normalized || option.value.toLowerCase() === normalized,
+    )
+    if (!match) return false
+    element.value = match.value
+  } else {
+    setNativeValue(element, trimmed)
+  }
+
+  element.dispatchEvent(new Event('input', { bubbles: true }))
+  element.dispatchEvent(new Event('change', { bubbles: true }))
+  return true
+}
+
+/**
+ * Rellena en la página los campos detectados previamente con las respuestas
+ * generadas por la IA. Nunca envía el formulario: solo escribe los valores.
+ * Devuelve los ids que se han podido rellenar (los demás quedan disponibles
+ * para copiar manualmente desde el popup).
+ */
+export function fillFields(answers: { id: string; answer: string }[]): string[] {
+  const filledIds: string[] = []
+
+  for (const { id, answer } of answers) {
+    const element = fieldRegistry.get(id)
+    if (element && fillField(element, answer)) {
+      filledIds.push(id)
+    }
+  }
+
+  return filledIds
 }

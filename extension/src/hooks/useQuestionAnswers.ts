@@ -19,10 +19,17 @@ function startPolling(jobId: string): void {
   void chrome.runtime.sendMessage(message).catch(() => undefined)
 }
 
+async function currentTabId(): Promise<number | null> {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+  return tab?.id ?? null
+}
+
 /**
  * Fuente de verdad del job de "responder preguntas" actual en el popup: rehidrata
  * desde `chrome.storage`, reacciona a las actualizaciones del service worker y
- * expone acciones para iniciar/descartar la generación de respuestas.
+ * expone acciones para iniciar/descartar la generación de respuestas. Las
+ * respuestas se autocompletan en la pestaña de origen desde el service worker
+ * en cuanto el job termina (ver `answerService.pollAnswerJob`).
  */
 export function useQuestionAnswers(): UseQuestionAnswers {
   const [job, setJob] = useState<StoredAnswerJob | null>(null)
@@ -59,11 +66,17 @@ export function useQuestionAnswers(): UseQuestionAnswers {
 
   const start = useCallback(
     async (questions: QuestionField[], payload: Omit<CreateAnswerJobPayload, 'questions'>) => {
+      const tabId = await currentTabId()
+      if (tabId === null) {
+        throw new Error('No se ha podido identificar la pestaña activa')
+      }
+
       const created = await createAnswerJob({ questions, ...payload })
       const stored: StoredAnswerJob = {
         jobId: created.jobId,
         status: created.status,
         questions,
+        tabId,
         updatedAt: Date.now(),
       }
       await answerJobStorage.saveJob(stored)

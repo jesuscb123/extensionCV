@@ -17,6 +17,8 @@ export interface StoredAnswerJob {
   jobId: string
   status: JobStatus
   questions: QuestionField[]
+  /** Pestaña donde se detectaron las preguntas; se usa para autocompletarlas al terminar. */
+  tabId: number
   answers?: AnsweredQuestion[]
   error?: string
   updatedAt: number

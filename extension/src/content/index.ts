@@ -1,10 +1,11 @@
 import { extractOffer } from './extractors'
-import { detectQuestions } from './questions/GenericFormExtractor'
+import { detectQuestions, fillFields } from './questions/GenericFormExtractor'
 import type { ExtensionMessage, ExtensionResponse } from '../types/messages'
 
 /**
- * Content script: escucha peticiones del popup y devuelve la oferta u otros
- * datos extraídos de la página actual usando el extractor adecuado.
+ * Content script: escucha peticiones del popup/background y devuelve la oferta
+ * u otros datos extraídos de la página actual, o rellena los campos del
+ * formulario con las respuestas generadas por la IA.
  */
 chrome.runtime.onMessage.addListener(
   (message: ExtensionMessage, _sender, sendResponse: (response: ExtensionResponse) => void) => {
@@ -22,6 +23,11 @@ chrome.runtime.onMessage.addListener(
           ? { type: 'QUESTIONS_DETECTED', questions }
           : { type: 'QUESTIONS_NOT_FOUND' },
       )
+    }
+
+    if (message.type === 'FILL_ANSWERS') {
+      const filledIds = fillFields(message.answers)
+      sendResponse({ type: 'ANSWERS_FILLED', filledIds })
     }
 
     return true

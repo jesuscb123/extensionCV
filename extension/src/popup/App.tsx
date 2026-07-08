@@ -117,7 +117,7 @@ export function App() {
       if (answers.job.status === 'ERROR') {
         return renderJobError(answers.job.error, answers.reset)
       }
-      return <LoadingPage message="Generando respuestas…" />
+      return <LoadingPage message="Generando y rellenando las respuestas…" />
     }
 
     return (

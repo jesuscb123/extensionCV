@@ -19,18 +19,25 @@ async function sendMessage(tabId: number, message: ExtensionMessage): Promise<Ex
 }
 
 /**
- * Envía un mensaje al content script de la pestaña activa, inyectándolo primero
- * si todavía no responde. Devuelve `null` si no hay pestaña activa o si el
- * content script no llega a responder tras la inyección.
+ * Envía un mensaje al content script de una pestaña concreta, inyectándolo
+ * primero si todavía no responde. Devuelve `null` si el content script no
+ * llega a responder tras la inyección (p. ej. la pestaña se cerró o navegó).
+ */
+export async function sendToTab(tabId: number, message: ExtensionMessage): Promise<ExtensionResponse | null> {
+  let response = await sendMessage(tabId, message)
+  if (!response) {
+    await ensureContentScriptInjected(tabId)
+    response = await sendMessage(tabId, message)
+  }
+  return response
+}
+
+/**
+ * Envía un mensaje al content script de la pestaña activa. Devuelve `null` si
+ * no hay pestaña activa.
  */
 export async function sendToActiveTab(message: ExtensionMessage): Promise<ExtensionResponse | null> {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (!tab?.id) return null
-
-  let response = await sendMessage(tab.id, message)
-  if (!response) {
-    await ensureContentScriptInjected(tab.id)
-    response = await sendMessage(tab.id, message)
-  }
-  return response
+  return sendToTab(tab.id, message)
 }

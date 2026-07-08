@@ -1,6 +1,6 @@
 import { z } from 'zod'
-import { questionFieldSchema, type QuestionField } from '../schemas/question.schema'
-import { sendToActiveTab } from './contentScriptBridge'
+import { questionFieldSchema, type AnsweredQuestion, type QuestionField } from '../schemas/question.schema'
+import { sendToActiveTab, sendToTab } from './contentScriptBridge'
 
 const questionsArraySchema = z.array(questionFieldSchema)
 
@@ -15,4 +15,15 @@ export async function requestQuestionsFromActiveTab(): Promise<QuestionField[] |
 
   const parsed = questionsArraySchema.safeParse(response.questions)
   return parsed.success && parsed.data.length > 0 ? parsed.data : null
+}
+
+/**
+ * Rellena en la pestaña indicada los campos que coincidan con las respuestas
+ * generadas. Nunca envía el formulario. Devuelve los ids que se han podido
+ * rellenar (best-effort: algunos campos pueden no encontrarse si la página
+ * cambió entre la detección y la respuesta).
+ */
+export async function fillAnswersOnTab(tabId: number, answers: AnsweredQuestion[]): Promise<string[]> {
+  const response = await sendToTab(tabId, { type: 'FILL_ANSWERS', answers })
+  return response?.type === 'ANSWERS_FILLED' ? response.filledIds : []
 }
