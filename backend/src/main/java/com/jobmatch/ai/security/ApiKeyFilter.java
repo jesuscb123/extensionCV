@@ -46,7 +46,6 @@ public class ApiKeyFilter extends OncePerRequestFilter {
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             return false;
         }
-        String uri = request.getRequestURI();
-        return uri.startsWith("/api/v1/analyses") || uri.startsWith("/api/v1/answers");
+        return ProtectedPaths.matches(request.getRequestURI());
     }
 }

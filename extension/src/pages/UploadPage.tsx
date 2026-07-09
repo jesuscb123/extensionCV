@@ -5,11 +5,12 @@ import { uploadFormSchema, type UploadFormValues } from '../schemas/upload.schem
 
 interface UploadPageProps {
   offer: JobOffer
+  canSubmit: boolean
   onSubmit: (values: UploadFormValues) => Promise<void>
   errorMessage?: string
 }
 
-export function UploadPage({ offer, onSubmit, errorMessage }: UploadPageProps) {
+export function UploadPage({ offer, canSubmit, onSubmit, errorMessage }: UploadPageProps) {
   const {
     control,
     handleSubmit,
@@ -24,7 +25,6 @@ export function UploadPage({ offer, onSubmit, errorMessage }: UploadPageProps) {
         {offer.location && <p className="text-xs text-slate-500">{offer.location}</p>}
       </div>
 
-      <FileField name="cv" label="CV (PDF)" control={control} error={errors.cv?.message} />
       <FileField
         name="coverLetter"
         label="Carta de presentación (PDF)"
@@ -32,11 +32,12 @@ export function UploadPage({ offer, onSubmit, errorMessage }: UploadPageProps) {
         error={errors.coverLetter?.message}
       />
 
+      {!canSubmit && <p className="text-xs text-slate-500">Sube tu CV arriba para poder analizar.</p>}
       {errorMessage && <p className="text-xs text-rose-400">{errorMessage}</p>}
 
       <button
         type="submit"
-        disabled={isSubmitting}
+        disabled={isSubmitting || !canSubmit}
         className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
       >
         {isSubmitting ? 'Enviando…' : 'Analizar con IA'}

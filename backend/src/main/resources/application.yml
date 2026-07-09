@@ -19,6 +19,10 @@ ai:
   temperature: 0.2
 
 app:
+  storage:
+    # Carpeta donde se guarda el CV (última versión subida). Relativa al directorio
+    # de trabajo desde el que se arranca el backend (./backend al usar run.ps1).
+    directory: ${APP_STORAGE_DIR:./data}
   security:
     # API key compartida que exige el backend en la cabecera X-Api-Key.
     # Si se deja vacía, la autenticación se desactiva (solo para desarrollo local).

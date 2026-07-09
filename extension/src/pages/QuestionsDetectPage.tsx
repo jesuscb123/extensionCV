@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { requestQuestionsFromActiveTab } from '../services/questionService'
 import type { QuestionField } from '../schemas/question.schema'
 
@@ -9,15 +9,13 @@ type DetectState =
   | { status: 'error'; message: string }
 
 interface QuestionsDetectPageProps {
-  cvFile: File | null
-  onCvSelected: (file: File) => void
-  onSubmit: (questions: QuestionField[], cvFile: File) => Promise<void>
+  canSubmit: boolean
+  onSubmit: (questions: QuestionField[]) => Promise<void>
   errorMessage?: string
 }
 
-export function QuestionsDetectPage({ cvFile, onCvSelected, onSubmit, errorMessage }: QuestionsDetectPageProps) {
+export function QuestionsDetectPage({ canSubmit, onSubmit, errorMessage }: QuestionsDetectPageProps) {
   const [state, setState] = useState<DetectState>({ status: 'loading' })
-  const [localCvFile, setLocalCvFile] = useState<File | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -39,20 +37,11 @@ export function QuestionsDetectPage({ cvFile, onCvSelected, onSubmit, errorMessa
     }
   }, [])
 
-  const effectiveCvFile = cvFile ?? localCvFile
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>): void => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    setLocalCvFile(file)
-    onCvSelected(file)
-  }
-
   const handleSubmit = async (): Promise<void> => {
-    if (state.status !== 'found' || !effectiveCvFile) return
+    if (state.status !== 'found' || !canSubmit) return
     setSubmitting(true)
     try {
-      await onSubmit(state.questions, effectiveCvFile)
+      await onSubmit(state.questions)
     } finally {
       setSubmitting(false)
     }
@@ -89,26 +78,13 @@ export function QuestionsDetectPage({ cvFile, onCvSelected, onSubmit, errorMessa
         </ul>
       </div>
 
-      {cvFile ? (
-        <p className="text-xs text-slate-500">Usando el CV ya seleccionado ({cvFile.name}).</p>
-      ) : (
-        <label className="block space-y-1">
-          <span className="text-xs text-slate-300">CV (PDF)</span>
-          <input
-            type="file"
-            accept="application/pdf"
-            onChange={handleFileChange}
-            className="block w-full text-xs text-slate-400 file:mr-3 file:rounded-md file:border-0 file:bg-slate-800 file:px-3 file:py-1.5 file:text-slate-200"
-          />
-        </label>
-      )}
-
+      {!canSubmit && <p className="text-xs text-slate-500">Sube tu CV arriba para poder generar respuestas.</p>}
       {errorMessage && <p className="text-xs text-rose-400">{errorMessage}</p>}
 
       <button
         type="button"
         onClick={() => void handleSubmit()}
-        disabled={!effectiveCvFile || submitting}
+        disabled={!canSubmit || submitting}
         className="w-full rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-50"
       >
         {submitting ? 'Generando…' : 'Generar respuestas'}

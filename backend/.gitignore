@@ -6,6 +6,9 @@ target/
 # Configuración local con secretos (API key de Groq) — NO versionar
 config/
 
+# CV almacenado del usuario (dato personal) — NO versionar
+data/
+
 # IDE
 .idea/
 *.iml

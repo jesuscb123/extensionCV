@@ -170,7 +170,7 @@ Organizar el proyecto por capas.
 ```
 controller/  (api)
 
-service/     (analysis, answer: modo "responder preguntas")
+service/     (analysis, answer: modo "responder preguntas", cv: almacenamiento del CV)
 
 job/         (JobStore<T> async genérico: crear/consultar/expirar trabajos)
 
@@ -350,9 +350,25 @@ Endpoints (base `/api/v1`):
 - `GET /api/v1/analyses/{jobId}` — consulta estado/resultado (`PENDING`/`PROCESSING`/`DONE`/`ERROR`).
 - `POST /api/v1/answers` — modo "responder preguntas" (multipart: JSON con la lista de preguntas detectadas + contexto opcional de la oferta + cv.pdf). Devuelve `202 { jobId, status }`.
 - `GET /api/v1/answers/{jobId}` — consulta estado/resultado del job de respuestas.
+- `POST /api/v1/cv` — sube y persiste el CV (multipart: `cv.pdf`), sustituye al anterior. Devuelve `200 { fileName, storedAt, sizeBytes }`.
+- `GET /api/v1/cv` — metadatos del CV almacenado, o `data: null` si no hay ninguno todavía.
+- `GET /api/v1/cv/file` — descarga el CV almacenado (`application/pdf`, sin envelope JSON); `404 CV_NOT_FOUND` si no hay ninguno.
+- `DELETE /api/v1/cv` — elimina el CV almacenado.
 - `GET /api/v1/health` — healthcheck (sin auth).
 
-Los códigos de error del envelope son un enum estable: `VALIDATION_ERROR`, `UNAUTHORIZED`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `PDF_UNPROCESSABLE`, `RATE_LIMITED`, `JOB_NOT_FOUND`, `AI_PROVIDER_ERROR`, `INTERNAL_ERROR`.
+Los códigos de error del envelope son un enum estable: `VALIDATION_ERROR`, `UNAUTHORIZED`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`, `PDF_UNPROCESSABLE`, `RATE_LIMITED`, `JOB_NOT_FOUND`, `CV_NOT_FOUND`, `AI_PROVIDER_ERROR`, `INTERNAL_ERROR`.
+
+## Almacenamiento del CV
+
+Decisión explícita del usuario (evoluciona el MVP inicial, que no persistía nada):
+
+- Se guarda en el **sistema de ficheros local** del backend (`app.storage.directory`, por defecto
+  `./data/cv/`), sin base de datos. Solo se conserva **la última versión subida** (cada subida
+  sustituye a la anterior, minimización de datos).
+- La extensión **reutiliza automáticamente** el CV almacenado: si ya hay uno, no vuelve a pedirlo
+  al analizar ni al generar respuestas; lo descarga del backend cuando hace falta. El usuario puede
+  "Cambiar" (subir uno nuevo) o "Eliminar" desde el propio popup.
+- La carpeta `data/` está excluida de git (igual que `config/` con la API key).
 
 ---
 
@@ -388,7 +404,9 @@ Protección del backend (MVP):
 - **Rate limiting** por IP (limitador propio en memoria; Bucket4j como alternativa) para proteger el coste de la IA.
 - **CORS** restringido al origin de la extensión (`chrome-extension://<id>`).
 - **Anti prompt-injection**: el contenido scrapeado de la oferta y el texto de los PDFs se tratan como **datos**, nunca como instrucciones; el system prompt lo deja explícito y la salida se fuerza vía JSON Schema.
-- **Privacidad / RGPD**: el CV es dato personal; en el MVP **no se persiste** y no se loggea su contenido.
+- **Privacidad / RGPD**: el CV es dato personal. Se persiste (decisión explícita del usuario, ver
+  sección "Almacenamiento del CV") pero nunca se loggea su contenido; el resultado del análisis y
+  las respuestas generadas siguen sin persistir (viven solo en `chrome.storage` del navegador).
 
 ---
 

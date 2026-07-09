@@ -28,6 +28,11 @@ public class GlobalExceptionHandler {
         return build(ErrorCode.JOB_NOT_FOUND, ex.getMessage(), null);
     }
 
+    @ExceptionHandler(CvNotStoredException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCvNotStored(CvNotStoredException ex) {
+        return build(ErrorCode.CV_NOT_FOUND, ex.getMessage(), null);
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException ex) {
         List<ErrorDetail> details = ex.getBindingResult().getFieldErrors().stream()

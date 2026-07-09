@@ -3,19 +3,21 @@ import { Layout } from './Layout'
 import { useAnalysis } from '../hooks/useAnalysis'
 import { useJobOffer } from '../hooks/useJobOffer'
 import { useQuestionAnswers } from '../hooks/useQuestionAnswers'
+import { useStoredCv } from '../hooks/useStoredCv'
 import { UploadPage } from '../pages/UploadPage'
 import { LoadingPage } from '../pages/LoadingPage'
 import { ResultsPage } from '../pages/ResultsPage'
 import { QuestionsDetectPage } from '../pages/QuestionsDetectPage'
 import { AnswerResultsPage } from '../pages/AnswerResultsPage'
 import { ModeTabs, type AppMode } from '../components/ModeTabs'
+import { CvStatus } from '../components/CvStatus'
 import type { UploadFormValues } from '../schemas/upload.schema'
 import type { QuestionField } from '../schemas/question.schema'
 
 export function App() {
   const [mode, setMode] = useState<AppMode>('analysis')
-  const [cvFile, setCvFile] = useState<File | null>(null)
 
+  const cv = useStoredCv()
   const analysis = useAnalysis()
   const answers = useQuestionAnswers()
   const offerState = useJobOffer()
@@ -26,20 +28,28 @@ export function App() {
   const handleAnalysisSubmit = async (values: UploadFormValues): Promise<void> => {
     if (offerState.status !== 'found') return
     setSubmitError(undefined)
-    setCvFile(values.cv)
     try {
-      await analysis.start(offerState.offer, values.cv, values.coverLetter)
+      const cvFile = await cv.ensureFile()
+      if (!cvFile) {
+        setSubmitError('Sube tu CV primero')
+        return
+      }
+      await analysis.start(offerState.offer, cvFile, values.coverLetter)
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : 'No se pudo iniciar el análisis')
     }
   }
 
-  const handleQuestionsSubmit = async (questions: QuestionField[], cv: File): Promise<void> => {
-    setCvFile(cv)
+  const handleQuestionsSubmit = async (questions: QuestionField[]): Promise<void> => {
     setAnswerSubmitError(undefined)
     try {
+      const cvFile = await cv.ensureFile()
+      if (!cvFile) {
+        setAnswerSubmitError('Sube tu CV primero')
+        return
+      }
       await answers.start(questions, {
-        cvFile: cv,
+        cvFile,
         jobOffer:
           offerState.status === 'found'
             ? {
@@ -58,7 +68,8 @@ export function App() {
 
   return (
     <Layout>
-      <div className="mb-4">
+      <div className="mb-4 space-y-3">
+        <CvStatus cv={cv} />
         <ModeTabs mode={mode} onChange={setMode} />
       </div>
       {mode === 'analysis' ? renderAnalysis() : renderAnswers()}
@@ -101,7 +112,12 @@ export function App() {
     }
 
     return (
-      <UploadPage offer={offerState.offer} onSubmit={handleAnalysisSubmit} errorMessage={submitError} />
+      <UploadPage
+        offer={offerState.offer}
+        canSubmit={cv.metadata !== null}
+        onSubmit={handleAnalysisSubmit}
+        errorMessage={submitError}
+      />
     )
   }
 
@@ -122,8 +138,7 @@ export function App() {
 
     return (
       <QuestionsDetectPage
-        cvFile={cvFile}
-        onCvSelected={setCvFile}
+        canSubmit={cv.metadata !== null}
         onSubmit={handleQuestionsSubmit}
         errorMessage={answerSubmitError}
       />
