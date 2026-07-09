@@ -48,6 +48,33 @@ describe('resolveLabel', () => {
     const input = document.querySelector('input') as HTMLInputElement
     expect(resolveLabel(input)).toBeNull()
   })
+
+  it('usa el texto del hermano anterior como último recurso', () => {
+    document.body.innerHTML = `
+      <div>¿Cuál es tu expectativa salarial?</div>
+      <textarea></textarea>
+    `
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement
+    expect(resolveLabel(textarea)).toBe('¿Cuál es tu expectativa salarial?')
+  })
+
+  it('busca el texto en los hermanos anteriores de los ancestros si el campo no tiene hermanos propios', () => {
+    document.body.innerHTML = `
+      <div><p>¿Por qué eres el candidato ideal?</p></div>
+      <div><textarea></textarea></div>
+    `
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement
+    expect(resolveLabel(textarea)).toBe('¿Por qué eres el candidato ideal?')
+  })
+
+  it('no roba el texto de un bloque hermano que ya contiene su propio campo', () => {
+    document.body.innerHTML = `
+      <div><label>Nombre</label><input id="name" /></div>
+      <div><textarea></textarea></div>
+    `
+    const textarea = document.querySelector('textarea') as HTMLTextAreaElement
+    expect(resolveLabel(textarea)).toBeNull()
+  })
 })
 
 describe('resolveFieldType', () => {

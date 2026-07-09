@@ -63,6 +63,41 @@ function textFromFieldsetLegend(element: Element): string | null {
   return legend?.textContent?.trim() || null
 }
 
+const MAX_ANCESTOR_LEVELS = 4
+const MAX_PRECEDING_TEXT_LENGTH = 500
+
+function containsFormControl(element: Element): boolean {
+  return element.querySelector('input, textarea, select') !== null
+}
+
+/**
+ * Último recurso cuando no hay ningún label/aria/placeholder asociado: muchos
+ * formularios de candidatura muestran la pregunta como texto suelto justo
+ * encima del campo (un <div>/<p> hermano), sin ninguna asociación semántica.
+ * Sube por los hermanos anteriores y, si no encuentra nada, por los hermanos
+ * anteriores de cada ancestro (hasta MAX_ANCESTOR_LEVELS), evitando bloques
+ * que ya contengan su propio campo (para no robarle el texto a otra pregunta).
+ */
+function textFromPrecedingElement(element: Candidate): string | null {
+  let current: Element = element
+
+  for (let level = 0; level < MAX_ANCESTOR_LEVELS; level++) {
+    let sibling = current.previousElementSibling
+    while (sibling) {
+      if (!containsFormControl(sibling)) {
+        const text = sibling.textContent?.trim()
+        if (text && text.length <= MAX_PRECEDING_TEXT_LENGTH) return text
+      }
+      sibling = sibling.previousElementSibling
+    }
+
+    if (!current.parentElement) break
+    current = current.parentElement
+  }
+
+  return null
+}
+
 export function resolveLabel(element: Candidate): string | null {
   const id = element.getAttribute('id')
   if (id) {
@@ -86,6 +121,9 @@ export function resolveLabel(element: Candidate): string | null {
 
   const placeholder = (element as HTMLInputElement).placeholder?.trim()
   if (placeholder) return placeholder
+
+  const precedingText = textFromPrecedingElement(element)
+  if (precedingText) return precedingText
 
   return null
 }
